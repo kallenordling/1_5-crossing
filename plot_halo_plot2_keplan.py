@@ -533,45 +533,43 @@ origin_year    = y0_global
 
 
 
-fig,ax = plt.subplots(2,2,figsize=(45, 45))
+fig,ax = plt.subplots(2,1,figsize=(45, 45))
 
-ax[0,0].set_aspect('equal')
-ax[1,1].set_aspect('equal')
-ax[0,1].set_aspect('equal')
-ax[1,0].set_aspect('equal')
+ax[0].set_aspect('equal')
+ax[1].set_aspect('equal')
 line_styles = {'3.0':'solid','2.5':'dotted','2.0':'dashed','1.5':'dashdot'}
 args = sys.argv[1:]
 # One source of truth
 y0 = y0_global
 per_year = ring_thickness * year_scale
 year_to_radius = lambda y: (y - y0) * per_year
-for ax_ in ax.ravel():
-    set_year_axes_ticks_with_mapper(
-        ax_, year_to_radius, tick_min=2020, tick_max=2100,
-        label_step=10, label_base=2020, mirror_ticks=True,
-        label_both_sides=True, x_tick_rotation=45
-    )
-    set_year_axes_ticks_with_mapper(
-        ax_, year_to_radius, tick_min=2020, tick_max=2100,
-        label_step=10, label_base=2020, mirror_ticks=True,
-        label_both_sides=True, x_tick_rotation=45
-    ) 
+
+set_year_axes_ticks_with_mapper(
+    ax[0], year_to_radius, tick_min=2020, tick_max=2100,
+    label_step=10, label_base=2020, mirror_ticks=True,
+    label_both_sides=True, x_tick_rotation=45
+)
+set_year_axes_ticks_with_mapper(
+    ax[1], year_to_radius, tick_min=2020, tick_max=2100,
+    label_step=10, label_base=2020, mirror_ticks=True,
+    label_both_sides=True, x_tick_rotation=45
+)
 # Make sure your view limits also use the SAME mapping
 R_needed = year_to_radius(2100)
 pad = max(per_year, 0.05 * abs(R_needed))
-for a in ax.ravel():
+for a in ax:
     a.set_aspect('equal', adjustable='box')
     a.set_xlim(-R_needed - pad, R_needed + pad)
     a.set_ylim(-R_needed - pad, R_needed + pad)
 # Limits that match the same mapping
 R_needed = (2100 - origin_year) * per_year
-for a in ax.ravel():
+for a in ax:
     a.set_aspect('equal', adjustable='box')
     a.set_xlim(-R_needed - per_year, R_needed + per_year)
     a.set_ylim(-R_needed - per_year, R_needed + per_year)
 #cdf_last=float(args[0])
 cdf_data = pd.read_csv("keplan_cdf.csv")
-cdf_data2 = pd.read_csv("keplan_cdf_filtered.csv")
+
 for exp in exps:
     corner = 'top-left'
     order = orders[exp]
@@ -583,13 +581,17 @@ for exp in exps:
         corner="bottom-left"
 
     for t in order:
+        pdf_file= f"pdf_data/ssp{exp}_{t}_all.csv"
+        x_a = load_first_years(pdf_file)
         xs = np.linspace(2015, 2100, 100)
+        cdf_tmp = ecdf_scipy(x_a, xs)
+        cdf_tmp=pd.DataFrame({'year': xs, 'cdf': cdf_tmp})
         cdf= cdf_data[(cdf_data["scenario"] == "ssp"+exp) & (cdf_data["threshold"] == float(t))]
         sel = cdf.sort_values("year")
         sel_per_year = sel.groupby("year", as_index=False)["cdf"].max()
 
-        #print(cdf)
-        #print(cdf_tmp)
+        print(cdf)
+        print(cdf_tmp)
         
         
         cdf_interp = np.interp(
@@ -603,31 +605,8 @@ for exp in exps:
         # Combine into DataFrame
         interp_df = pd.DataFrame({"year": xs, "cdf": cdf_interp})
         print(interp_df)
-        cdf3=interp_df
+        cdf=interp_df
         #input('wait')
-        
-        cdf= cdf_data2[(cdf_data2["scenario"] == "ssp"+exp) & (cdf_data2["threshold"] == float(t))]
-        sel = cdf.sort_values("year")
-        sel_per_year = sel.groupby("year", as_index=False)["cdf"].max()
-
-        #print(cdf)
-        #print(cdf_tmp)
-        
-        
-        cdf_interp = np.interp(
-                xs,
-                sel_per_year["year"].values,
-                sel_per_year["cdf"].values,
-                left=0.0,
-                right=sel_per_year["cdf"].values[-1],
-        )
-
-        # Combine into DataFrame
-        interp_df = pd.DataFrame({"year": xs, "cdf": cdf_interp})
-        print(interp_df)
-        cdf2=interp_df
-        #input('wait')
-        
         print(exp)
         '''
         cmap,norm=plot_quarter_circular_cdf_from_table(
@@ -644,8 +623,8 @@ for exp in exps:
         print(cdf['cdf'])
         print(cdf['cdf'].max()) 
 
-        if cdf3['cdf'].max() > 0.66:
-	        cmap,norm,__=plot_quarter_circular_cdf_from_table(cdf3, ax[0,0],  corner=corner,
+        if cdf['cdf'].max() > 0.66:
+	        cmap,norm,__=plot_quarter_circular_cdf_from_table(cdf, ax[0],  corner=corner,
 		             origin_year=origin_year,
 		             per_year=per_year,
 		             cdf_last=0.66,
@@ -653,8 +632,8 @@ for exp in exps:
 		             linestyle=line_styles[t],
 		             title="66% Chance (Likely)",
 		             cmap="Reds")
-        if cdf3['cdf'].max() > 0.90:	             
-	        cmap,norm,__=plot_quarter_circular_cdf_from_table(cdf3, ax[0,1], corner=corner,
+        if cdf['cdf'].max() > 0.90:	             
+	        cmap,norm,__=plot_quarter_circular_cdf_from_table(cdf, ax[1], corner=corner,
 		             origin_year=origin_year,
 		             per_year=per_year,
 		             cdf_last=0.90,
@@ -662,26 +641,6 @@ for exp in exps:
 		             linestyle=line_styles[t],
 		             title="90% Chance (Very likely)",
 		             cmap="Reds")
-	
-	
-        if cdf2['cdf'].max() > 0.66:
-	        cmap,norm,__=plot_quarter_circular_cdf_from_table(cdf2, ax[1,0],  corner=corner,
-		             origin_year=origin_year,
-		             per_year=per_year,
-		             cdf_last=0.66,
-		             add_colorbar=False,
-		             linestyle=line_styles[t],
-		             title="66% Chance (Likely) filtered",
-		             cmap="Reds")
-        if cdf2['cdf'].max() > 0.90:	             
-	        cmap,norm,__=plot_quarter_circular_cdf_from_table(cdf2, ax[1,1], corner=corner,
-		             origin_year=origin_year,
-		             per_year=per_year,
-		             cdf_last=0.90,
-		             add_colorbar=False,
-		             linestyle=line_styles[t],
-		             title="90% Chance (Very likely) filtered",
-		             cmap="Reds")	            
         #input('wait')      
 
 # Colorbar with same norm as wedges
@@ -732,7 +691,7 @@ def center_rect(width=3.00, height=0.12):
 pos_center = center_rect(width=1.50, height=0.12)
 add_ring_legend(fig, line_styles, pos=pos_center)
 
-for a, label in zip(ax.ravel(), ['a)', 'b)','c)','d)']):
+for a, label in zip(ax, ['a)', 'b)']):
     txt = a.text(
         0.02, 0.98, label,
         transform=a.transAxes,
@@ -743,6 +702,6 @@ for a, label in zip(ax.ravel(), ['a)', 'b)','c)','d)']):
     # keep readable on any background (optional halo)
     txt.set_path_effects([pe.withStroke(linewidth=4, foreground='white')])
 
-plt.savefig("figures_new/halo__keplan_new_supp.png", bbox_inches="tight")
-plt.savefig("figures_new/halo__keplan_new_supp.svg",dpi=180, bbox_inches="tight")
+plt.savefig("figures_new/halo__keplan_new.png", bbox_inches="tight")
+plt.savefig("figures_new/halo__keplan_new.svg",dpi=180, bbox_inches="tight")
 plt.close(fig)

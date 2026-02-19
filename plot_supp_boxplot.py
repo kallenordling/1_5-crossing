@@ -150,10 +150,10 @@ SSP_NAME_PRETTY = {
     "ssp370": "SSP3–7.0",
     "ssp585": "SSP5–8.5",
 }
-sns.set_theme(style="white")
-sns.set_theme(style="whitegrid")
+#sns.set_theme(style="white")
+#sns.set_theme(style="whitegrid")
 plt.rcParams.update({'font.size': 24})
-sns.set_theme(context="talk")  # bigger base fonts
+#sns.set_theme(context="talk")  # bigger base fonts
 mpl.rcParams.update({
     "font.size": 16,          # base size
     "font.weight": "bold",    # make all text bold by default
@@ -214,4 +214,4 @@ legend_elems = [
 ]
 fig.legend(legend_elems, [e.get_label() for e in legend_elems],
            loc="upper center", ncol=3, frameon=False, bbox_to_anchor=(0.5, 0.99))
-plt.savefig('figures/comp_boxplot.png')
+plt.savefig('figures_new/comp_boxplot.png')
